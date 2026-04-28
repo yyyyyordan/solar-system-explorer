@@ -1,8 +1,30 @@
-import { useRef } from 'react'
+import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useTexture } from '@react-three/drei'
 import * as THREE from 'three'
 import { SUN_RADIUS } from '../data/planets'
+
+// Forgiving tap detector for mobile — see notes in Planet.jsx.
+function useTapHandler(onTap) {
+  const tap = useRef({ x: 0, y: 0, t: 0 })
+  return useMemo(
+    () => ({
+      onPointerDown: (e) => {
+        tap.current = { x: e.clientX ?? 0, y: e.clientY ?? 0, t: performance.now() }
+      },
+      onPointerUp: (e) => {
+        const dx = (e.clientX ?? 0) - tap.current.x
+        const dy = (e.clientY ?? 0) - tap.current.y
+        const dt = performance.now() - tap.current.t
+        if (dx * dx + dy * dy < 900 && dt < 500) {
+          e.stopPropagation()
+          onTap()
+        }
+      }
+    }),
+    [onTap]
+  )
+}
 
 // The Sun is a self-illuminated emissive sphere with a soft outer glow.
 // A real PointLight at the center drives all in-scene shadows + lighting.
@@ -13,6 +35,7 @@ export default function Sun({ onClick }) {
 
   const surfaceRef = useRef()
   const haloRef = useRef()
+  const tapHandlers = useTapHandler(() => onClick?.())
 
   useFrame((_, dt) => {
     if (surfaceRef.current) surfaceRef.current.rotation.y += dt * 0.04
@@ -44,10 +67,7 @@ export default function Sun({ onClick }) {
       {/* Surface — emissive uses the same map so the sun glows in its true colors */}
       <mesh
         ref={surfaceRef}
-        onClick={(e) => {
-          e.stopPropagation()
-          onClick?.()
-        }}
+        {...tapHandlers}
         onPointerOver={(e) => {
           e.stopPropagation()
           document.body.style.cursor = 'pointer'
@@ -58,6 +78,12 @@ export default function Sun({ onClick }) {
       >
         <sphereGeometry args={[SUN_RADIUS, 96, 64]} />
         <meshBasicMaterial map={map} toneMapped={false} />
+      </mesh>
+
+      {/* Invisible larger hit-target for mobile tap precision. */}
+      <mesh {...tapHandlers}>
+        <sphereGeometry args={[SUN_RADIUS * 1.3, 16, 12]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
 
       {/* Inner halo */}

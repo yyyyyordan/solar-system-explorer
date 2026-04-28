@@ -30,6 +30,32 @@ const MATERIAL_OVERRIDES = {
 // For rocky bodies we drive bump from the albedo (cheap and effective).
 const ROCKY = new Set(['mercury', 'venus', 'mars'])
 
+// Mobile-friendly tap detection. R3F's onClick fires on pointerup only if
+// movement was below a tiny threshold — too strict for fingers. We track
+// the down position/time ourselves and fire onTap on a "near-stationary"
+// release within 500ms and ~30px. Movement beyond that = drag (let
+// OrbitControls handle it).
+function useTapHandler(onTap) {
+  const tap = useRef({ x: 0, y: 0, t: 0 })
+  return useMemo(
+    () => ({
+      onPointerDown: (e) => {
+        tap.current = { x: e.clientX ?? 0, y: e.clientY ?? 0, t: performance.now() }
+      },
+      onPointerUp: (e) => {
+        const dx = (e.clientX ?? 0) - tap.current.x
+        const dy = (e.clientY ?? 0) - tap.current.y
+        const dt = performance.now() - tap.current.t
+        if (dx * dx + dy * dy < 900 && dt < 500) {
+          e.stopPropagation()
+          onTap()
+        }
+      }
+    }),
+    [onTap]
+  )
+}
+
 // Shader injection for Earth's night-side city lights. We use the world
 // position of each fragment + the world normal, and the fact that the Sun
 // sits at the origin: dot(normal, -worldPos) tells us how lit the surface
@@ -201,6 +227,11 @@ export default function Planet({ planet, registerRef }) {
 
   const mat = MATERIAL_OVERRIDES[planet.id] || { roughness: 0.85, metalness: 0.02, bumpScale: 0 }
   const useAlbedoBump = ROCKY.has(planet.id)
+  const tapHandlers = useTapHandler(() => setFocus(planet.id))
+
+  // Mobile hit-target radius: small planets get a relatively bigger
+  // hitbox so they remain tappable when they're only a few pixels wide.
+  const hitRadius = Math.max(planet.radius * 1.6, 0.55)
 
   return (
     <>
@@ -216,10 +247,7 @@ export default function Planet({ planet, registerRef }) {
                 ref={meshRef}
                 castShadow
                 receiveShadow
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setFocus(planet.id)
-                }}
+                {...tapHandlers}
                 onPointerOver={(e) => {
                   e.stopPropagation()
                   document.body.style.cursor = 'pointer'
@@ -253,6 +281,13 @@ export default function Planet({ planet, registerRef }) {
                   runs after CameraRig, and the DOM overlay sits outside
                   the Canvas. */}
             </group>
+
+            {/* Invisible larger hit-target — gives small planets like
+                Mercury enough finger-area to tap on a phone. */}
+            <mesh {...tapHandlers}>
+              <sphereGeometry args={[hitRadius, 16, 12]} />
+              <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+            </mesh>
 
             {/* Earth clouds — separate translucent shell using clouds.jpg as alphaMap. */}
             {planet.id === 'earth' && earthMaps.cloudsMap && (
