@@ -1,0 +1,14 @@
+node_modules
+dist
+dist-ssr
+.vite
+.DS_Store
+*.local
+.env
+.env.local
+
+# Local IDE / tooling config
+.claude/
+
+# Downloaded by scripts/fetch-textures.mjs on postinstall
+public/textures/
