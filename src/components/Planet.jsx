@@ -82,20 +82,24 @@ export default function Planet({ planet, registerRef }) {
   const setFocus = useStore((s) => s.setFocus)
   const isFocused = focusedId === planet.id
 
+  // Resolve texture URL relative to Vite's base path so it works both
+  // in dev (BASE_URL = '/') and on GitHub Pages (BASE_URL = '/repo/').
+  const tex = (name) => `${import.meta.env.BASE_URL}textures/${name}`
+
   // Always load the planet's albedo. Add Earth-specific maps if needed.
-  const map = useTexture(`/textures/${planet.id}.jpg`)
+  const map = useTexture(tex(`${planet.id}.jpg`))
   const earthMaps = useTexture(
     planet.id === 'earth'
       ? {
-          normalMap: '/textures/earth_normal.jpg',
-          specMap: '/textures/earth_specular.jpg',
-          cloudsMap: '/textures/earth_clouds.jpg',
-          lightsMap: '/textures/earth_lights.jpg'
+          normalMap: tex('earth_normal.jpg'),
+          specMap: tex('earth_specular.jpg'),
+          cloudsMap: tex('earth_clouds.jpg'),
+          lightsMap: tex('earth_lights.jpg')
         }
-      : { _placeholder: '/textures/moon.jpg' } // useTexture needs at least one
+      : { _placeholder: tex('moon.jpg') } // useTexture needs at least one
   )
   // All moons share the moon.jpg map; per-moon `color` tints the material.
-  const moonMap = useTexture('/textures/moon.jpg')
+  const moonMap = useTexture(tex('moon.jpg'))
   moonMap.colorSpace = THREE.SRGBColorSpace
   moonMap.anisotropy = 16
 

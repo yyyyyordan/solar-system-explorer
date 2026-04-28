@@ -7,7 +7,7 @@ import { SUN_RADIUS } from '../data/planets'
 // The Sun is a self-illuminated emissive sphere with a soft outer glow.
 // A real PointLight at the center drives all in-scene shadows + lighting.
 export default function Sun({ onClick }) {
-  const map = useTexture('/textures/sun.jpg')
+  const map = useTexture(`${import.meta.env.BASE_URL}textures/sun.jpg`)
   map.colorSpace = THREE.SRGBColorSpace
   map.anisotropy = 16
 

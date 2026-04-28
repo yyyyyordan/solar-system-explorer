@@ -9,7 +9,7 @@ import { makeRingTexture } from '../utils/textures'
 // When `useReal` is true (Saturn) we use the SSS ring alpha PNG;
 // otherwise we fall back to the procedural ring (Uranus's faint band).
 export default function SaturnRings({ inner, outer, opacity = 1, useReal = false, fallbackColor = '#d8c08c' }) {
-  const realTex = useTexture(useReal ? '/textures/saturn_rings.png' : '/textures/saturn_rings.png')
+  const realTex = useTexture(`${import.meta.env.BASE_URL}textures/saturn_rings.png`)
   const procTex = useMemo(
     () => (useReal ? null : makeRingTexture({ hue: fallbackColor })),
     [useReal, fallbackColor]
